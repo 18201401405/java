@@ -1,0 +1,75 @@
+package hive_udf_province;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hive.ql.exec.UDF;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Created by Administrator on 2017/12/7.s
+ * 参数为需要兑换表的字段，去跟码表的第一个字段去匹配，兑换出码表的第二个字段
+ */
+public class UDF_province_name extends UDF{
+    public static String evaluate(String inputId) {
+        BufferedReader in = null;
+        String line;
+        String hdfsPath = "/user/hive/warehouse/yl.db/dim_province_defult/000000_0";
+        Map<String,String> map = new HashMap<String, String>();
+        try {
+            in = new BufferedReader(new InputStreamReader(readHdfsFile(hdfsPath), "UTF-8"));
+            while ((line = in.readLine()) != null) {
+                //001\u0001河北省
+                String key = line.split("\u0001")[0];
+                String value = line.split("\u0001")[1];
+                map.put(key,value);
+            }
+            in.close();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return map.get(inputId);
+    }
+
+    public static FSDataInputStream readHdfsFile(String hdfsPath) {
+
+        FileSystem hdfs = null;
+        try {
+            Configuration conf = new Configuration();
+            hdfs = FileSystem.get(conf);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Path path = new Path(hdfsPath);
+        FSDataInputStream inputStream = null;
+        try {
+
+            inputStream = hdfs.open(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("连接失败!");
+        }
+        return inputStream;
+    }
+
+    public static void main(String args[]) {
+        //存在hdfs
+        //读取数据，并存入map
+        Map<String,String> map = new HashMap<String, String>();
+        map.put("12","湖北");
+        map.put("13","浙江");
+        map.put("14","河北");
+        //传入id获取省份
+        System.out.println(map.get("22"));
+    }
+}
